@@ -9,9 +9,9 @@ MAIN_CONFIG_FILE=guacamole-setup.cfg
 USERS_CONNECTIONS_CONFIG_FILE=users_connections.cfg
 INITDB_BASE_FILE=initdb_base.sql
 
-DEFAULT_MAIN_CONFIG_FILE=
-DEFAULT_USERS_CONNECTIONS_CONFIG_URL=
-DEFAULT_INITDB_BASE_URL=
+DEFAULT_MAIN_CONFIG_FILE=https://raw.githubusercontent.com/roncterry/guacamole-setup/refs/heads/main/guacamole-setup.cfg
+DEFAULT_USERS_CONNECTIONS_CONFIG_URL=https://raw.githubusercontent.com/roncterry/guacamole-setup/refs/heads/main/users_connections.cfg
+DEFAULT_INITDB_BASE_URL=https://raw.githubusercontent.com/roncterry/guacamole-setup/refs/heads/main/initdb_base.sql
 
 ##############################################################################
 
