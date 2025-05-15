@@ -35,4 +35,4 @@ If you have your own certificate and key you can use those instead. In that case
 
 ## Users and Passwords
 
-At the moment the procedure for generating new passwords has not been documented. It is a little bit involved. It will be added here at a later date. You can use the password hashes/salts in the examples in the config files for the time being to test.
+At the moment the procedure for generating new passwords for Guacamole login users has not been documented yet. It is a little bit involved. It will be added here at a later date. You can use the password hashes/salts in the examples in the config files for the time being to test.
