@@ -9,9 +9,9 @@ MAIN_CONFIG_FILE=guacamole-setup.cfg
 USERS_CONNECTIONS_CONFIG_FILE=users_connections.cfg
 INITDB_BASE_FILE=initdb_base.sql
 
-DEFAULT_MAIN_CONFIG_FILE=https://raw.githubusercontent.com/roncterry/guacamole-setup/refs/heads/main/guacamole-setup.cfg
-DEFAULT_USERS_CONNECTIONS_CONFIG_URL=https://raw.githubusercontent.com/roncterry/guacamole-setup/refs/heads/main/users_connections.cfg
-DEFAULT_INITDB_BASE_URL=https://raw.githubusercontent.com/roncterry/guacamole-setup/refs/heads/main/initdb_base.sql
+DEFAULT_MAIN_CONFIG_FILE=
+DEFAULT_USERS_CONNECTIONS_CONFIG_URL=
+DEFAULT_INITDB_BASE_URL=
 
 ##############################################################################
 
@@ -130,6 +130,53 @@ retrieve_base_initdb_file() {
   fi
 }
 
+generate_tls_certificate() {
+  echo "======================================================================"
+  echo "Generating TLS certificate and key ..."
+  echo "======================================================================"
+  echo
+  
+  if ! [ -e ${NGINX_TLS_CERT_FILE} ]
+  then
+    echo "COMMAND: openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days ${TLS_DAYS} -nodes -subj \"/C=${TLS_C}/ST=${TLS_ST}/L=${TLS_L}/O=${TLS_O}/OU=${TLS_OU}/CN=${HOSTNAME}\" -addext \"subjectAltName=DNS:$(hostname -f),DNS:*.$(hostname -d),IP:${IP}\""
+    openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days ${TLS_DAYS} -nodes -subj "/C=${TLS_C}/ST=${TLS_ST}/L=${TLS_L}/O=${TLS_O}/OU=${TLS_OU}/CN=${HOSTNAME}" -addext "subjectAltName=DNS:$(hostname -f),DNS:*.$(hostname -d),IP:${IP}"
+  else
+    echo "Using existing certificate files."
+  fi
+  echo
+}
+
+create_nginx_proxy_config() {
+  echo "======================================================================"
+  echo "Creating Guacamole NGINX Proxy config file ..."
+  echo "======================================================================"
+  echo
+
+  if ! [ -e ${NGINX_CONFIG_FILE} ]
+  then
+    echo "
+server {
+  listen ${NGINX_TLS_PORT} ssl;
+
+  ssl_certificate /etc/nginx/conf.d/server.crt;
+  ssl_certificate_key /etc/nginx/conf.d/server.key;
+  location /guacamole/ {
+    proxy_pass http://$(hostname -f):${GUACAMOLE_PORT}/guacamole/;
+    proxy_buffering off;
+    proxy_http_version 1.1;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection \$http_connection;
+  }
+} " > ${NGINX_CONFIG_FILE}
+  else
+    echo "Using existing NGINX config file."
+    echo
+  fi
+  cat ${NGINX_CONFIG_FILE}
+  echo
+}
+
 create_required_folders_and_files() {
   echo "======================================================================"
   echo "Creating required folders and files ..."
@@ -150,6 +197,22 @@ create_required_folders_and_files() {
 
   echo "COMMAND: sudo mkdir -m 775 -p ${PODMAN_DIR}/guacd/{drive,records}"
   sudo mkdir -m 775 -p ${PODMAN_DIR}/guacd/{drive,records}
+  echo
+
+  echo "COMMAND: sudo mkdir -m 775 -p ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d"
+  sudo mkdir -m 775 -p ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d
+  echo
+
+  echo "COMMAND: sudo cp ${NGINX_CONFIG_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/default.conf"
+  sudo cp ${NGINX_CONFIG_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/default.conf
+  echo
+
+  echo "COMMAND: sudo cp ${NGINX_TLS_CERT_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.crt"
+  sudo cp ${NGINX_TLS_CERT_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.crt
+  echo
+
+  echo "COMMAND: sudo cp ${NGINX_TLS_KEY_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.key"
+  sudo cp ${NGINX_TLS_KEY_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.key
   echo
 
   # Set the ownership on the folders
@@ -185,6 +248,16 @@ update_hosts_file() {
   echo "======================================================================"
   echo
 
+  #if ! grep -q "^${IP}" /etc/hosts
+  #then
+  #  echo "COMMAND: echo ${IP}   $(hostname -f) ${HOSTNAME} | sudo tee -a /etc/hosts"
+  #  echo ${IP}   $(hostname -f) ${HOSTNAME} | sudo tee -a /etc/hosts
+  #  echo
+  #else
+  #  echo "The local host is already in the /etc/hosts file."
+  #  echo
+  #fi
+
   for HOST_ENTRY in ${CONNECTION_HOSTNAME_LIST}
   do
     local CONNECTION_HOSTNAME=$(echo ${HOST_ENTRY} | cut -d , -f 1)
@@ -192,8 +265,11 @@ update_hosts_file() {
 
     if ! grep -q "^${IP_ADDR}" /etc/hosts
     then
-      echo "COMMAND: echo ${IP_ADDR}  ${HOSTNAME} | sudo tee -a /etc/hosts":
-      echo ${IP_ADDR}  ${CONNECTION_HOST} | sudo tee -a /etc/hosts
+      echo "COMMAND: echo ${IP_ADDR}   ${CONNECTION_HOSTNAME} | sudo tee -a /etc/hosts":
+      echo ${IP_ADDR}   ${CONNECTION_HOSTNAME} | sudo tee -a /etc/hosts
+      echo
+    else
+      echo "The host '${CONNECTION_HOSTNAME}' is already in the /etc/hosts file."
       echo
     fi
   done
@@ -241,7 +317,6 @@ enable_configure_firewall() {
   echo "======================================================================"
   echo
 
-  # Make sure the firewall is enabled and started, then we open the correct ports in the firewall for guac
   if ! systemctl is-enabled firewalld.service | grep -q enabled
   then
     echo "COMMAND: sudo systemctl enable --now firewalld.service"
@@ -255,6 +330,16 @@ enable_configure_firewall() {
     then
       echo "COMMAND: sudo firewall-cmd --add-port=${REQUIRED_FIREWALL_PORT} --permanent"
       sudo firewall-cmd --add-port=${REQUIRED_FIREWALL_PORT} --permanent
+      echo
+    fi
+  done
+
+  for REQUIRED_FIREWALL_SERVICE in ${REQUIRED_FIREWALL_SERVICES_LIST}
+  do
+    if ! sudo firewall-cmd --list-all | grep " .ports: " | grep -q ${REQUIRED_FIREWALL_SERVICE}
+    then
+      echo "COMMAND: sudo firewall-cmd --add-service=${REQUIRED_FIREWALL_SERVICE} --permanent"
+      sudo firewall-cmd --add-service=${REQUIRED_FIREWALL_SERVICE} --permanent
       echo
     fi
   done
@@ -472,7 +557,6 @@ start_containers() {
   echo
 
   echo "[postgresql]"
-  # Start the required containers starting with postgresql
   podman run -d --name postgresql \
     -v ${PODMAN_DIR}/postgresql/init:/docker-entrypoint-initdb.d \
     -v ${PODMAN_DIR}/postgresql/data:/var/lib/postgresql/data \
@@ -485,7 +569,6 @@ start_containers() {
   echo
 
   echo "[guacd]"
-  # followed by the Guacamole listener daemon
   podman run -d --name guacd \
     -v /etc/localtime:/etc/localtime:ro \
     -v ${PODMAN_DIR}/guacd/records:/record \
@@ -495,7 +578,6 @@ start_containers() {
   echo
 
   echo "[guacamole]"
-  # now for the Guacamole container
   podman run -d --name guacamole \
     -e POSTGRESQL_HOSTNAME=postgresql \
     -e POSTGRESQL_DATABASE=guacamole_db \
@@ -506,9 +588,18 @@ start_containers() {
     -e GUACD_HOSTNAME=guacd \
     -v ${PODMAN_DIR}/guac/home:/etc/guacamole \
     --requires=guacd,postgresql \
-    -p 8080:8080 \
+    -p ${GUACAMOLE_PORT}:${GUACAMOLE_PORT} \
     --network=guacamole \
     docker.io/guacamole/guacamole
+  echo
+
+  echo "[guacamole_proxy]"
+  podman run -d --name guacamole_proxy \
+    -v ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d:/etc/nginx/conf.d \
+    --requires=guacamole \
+    -p ${NGINX_TLS_PORT}:${NGINX_TLS_PORT} \
+    --network=guacamole \
+    docker.io/nginx
   echo
 }
 
@@ -582,6 +673,8 @@ install_guacamole() {
 
   retrieve_config_files
   retrieve_base_initdb_file
+  generate_tls_certificate
+  create_nginx_proxy_config
   create_required_folders_and_files
 
   install_packages
