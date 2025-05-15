@@ -665,6 +665,10 @@ enabled_systemd_services() {
   podman generate systemd --files --name guacamole > /dev/null 2>&1
   echo
 
+  echo "COMMAND: podman generate systemd --files --name guacamole_proxy > /dev/null 2>&1"
+  podman generate systemd --files --name guacamole_proxy > /dev/null 2>&1
+  echo
+
   echo "COMMAND: cd ~"
   cd ~
   echo
@@ -685,6 +689,10 @@ enabled_systemd_services() {
 
   echo "COMMAND: systemctl --user enable container-guacamole.service > /dev/null 2>&1"
   systemctl --user enable container-guacamole.service > /dev/null 2>&1
+  echo
+
+  echo "COMMAND: systemctl --user enable container-guacamole_proxy.service > /dev/null 2>&1"
+  systemctl --user enable container-guacamole_proxy.service > /dev/null 2>&1
   echo
 }
 
