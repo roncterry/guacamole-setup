@@ -1,6 +1,14 @@
 # Overview
 Scripts that automate the installation and configuration of Guacamole running in containers on Podman.
 
+# USAGE
+
+The `guacamole-setup.sh` script accepts two arguments: **install** (to install and configure Guacamole on the host) and **remove** (to remove Guacamole from the host).
+
+***Installation Example:*** `guacamole-setup.sh install`
+
+***Removal Example:*** `guacamole-setup.sh remove`
+
 # Configuration Files
 
 The `guacamole-setup.cfg` file in the main configuration file for `guacamole-setup.sh` script.
@@ -10,14 +18,6 @@ The `users_connections.cfg` file contains a list of users, connections and user 
 The `initdb_base.sql` file is the base SQL config file that will be used to initialize the PostgreSQL database when it is run the first time. That file will be copied into the persistent volume attached to the PostgreSQL container and then additional SQL code blocks will be appended to it based on the configurationint the other config files.
 
 These three config files must be in the same directory as the `guacamole-setup.sh` script. If they are not, or their filenames do not match the ones specified at the top the of script, the script will attempt to download the default versions of the files from this Github repository.
-
-# USAGE
-
-The `guacamole-setup.sh` script accepts two arguments: **install** (to install and configure Guacamole on the host) and **remove** (to remove Guacamole from the host).
-
-***Installation Example:*** `guacamole-setup.sh install`
-
-***Removal Example:*** `guacamole-setup.sh remove`
 
 # Requirements
 
