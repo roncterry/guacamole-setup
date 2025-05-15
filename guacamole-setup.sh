@@ -481,15 +481,27 @@ add_connections() {
     local CONNECTION_PORT=$(echo ${CONNECTION} | cut -d , -f 5)
     local CONNECTION_USERNAME=$(echo ${CONNECTION} | cut -d , -f 6)
     local CONNECTION_PASSWORD=$(echo ${CONNECTION} | cut -d , -f 7)
+    local CONNECTION_SSH_KEY_FILE=$(echo ${CONNECTION} | cut -d , -f 8)
+    local CONNECTION_SSH_KEY_PASSPHRASE=$(echo ${CONNECTION} | cut -d , -f 9)
+
+    if ! [ -z ${CONNECTION_SSH_KEY_FILE} ]
+    then 
+      if [ -e ${CONNECTION_SSH_KEY_FILE} ]
+      then
+        CONNECTION_SSH_KEY=$(cat ${CONNECTION_SSH_KEY_FILE})
+      fi
+    fi
 
     echo "----------------------------------------------"
-    echo "  Connection ID:   ${CONNECTION_ID}"
-    echo "  Connection Name: ${CONNECTION_NAME}"
-    echo "  Protocol:        ${CONNECTION_PROTOCOL}"
-    echo "  Host:            ${CONNECTION_HOST}"
-    echo "  Port:            ${CONNECTION_PORT}"
-    echo "  Username:        ${CONNECTION_USERNAME}"
-    echo "  Password:        ${CONNECTION_PASSWORD}"
+    echo "  Connection ID:       ${CONNECTION_ID}"
+    echo "  Connection Name:     ${CONNECTION_NAME}"
+    echo "  Protocol:            ${CONNECTION_PROTOCOL}"
+    echo "  Host:                ${CONNECTION_HOST}"
+    echo "  Port:                ${CONNECTION_PORT}"
+    echo "  Username:            ${CONNECTION_USERNAME}"
+    echo "  Password:            ${CONNECTION_PASSWORD}"
+    echo "  SSH key file:        ${CONNECTION_SSH_KEY_FILE}"
+    echo "  SSH Key passphrase:  ${CONNECTION_SSH_KEY_PASSPHRASE}"
     echo
 
     echo "
@@ -502,9 +514,22 @@ SELECT * FROM guacamole_connection WHERE connection_name = '${CONNECTION_NAME}' 
 -- Add parameters to the new connection
 INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'hostname', '${CONNECTION_HOST}');
 INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'port', '${CONNECTION_PORT}');
-INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'username', '${CONNECTION_USERNAME}');
-INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'password', '${CONNECTION_PASSWORD}');
-    " >> ${PODMAN_DIR}/postgresql/init/initdb.sql
+INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'username', '${CONNECTION_USERNAME}'); " >> ${PODMAN_DIR}/postgresql/init/initdb.sql
+
+    if ! [ -z "${CONNECTION_PASSWORD}" ]
+    then
+      echo "INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'password', '${CONNECTION_PASSWORD}'); " >> ${PODMAN_DIR}/postgresql/init/initdb.sql
+    fi
+
+    if ! [ -z "${CONNECTION_SSH_KEY}" ]
+    then
+      echo "INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'private-key', '${CONNECTION_SSH_KEY}'); " >> ${PODMAN_DIR}/postgresql/init/initdb.sql
+    fi
+
+    if ! [ -z "${CONNECTION_SSH_KEY}" ]
+    then
+      echo "INSERT INTO guacamole_connection_parameter VALUES (${CONNECTION_ID}, 'passphrase', '${CONNECTION_SSH_KEY_PASSPHRASE}'); " >> ${PODMAN_DIR}/postgresql/init/initdb.sql
+    fi
   done
   echo "" >> ${PODMAN_DIR}/postgresql/init/initdb.sql
 }
