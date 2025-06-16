@@ -15,6 +15,9 @@ DEFAULT_INITDB_BASE_URL=
 
 ##############################################################################
 
+GUACAMOLE_CONTAINER_LIST="postgresql guacd guacamole guacamole_proxy"
+GUACAMOLE_NETWORK_LIST="guacamole"
+
 export EXTERNAL_NIC=$(ip route show | grep "^default" | awk '{ print $5 }')
 export IP=$(ip addr show ${EXTERNAL_NIC} | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 #NAME=$(hostname)
@@ -25,7 +28,13 @@ export IP=$(ip addr show ${EXTERNAL_NIC} | grep "inet\b" | awk '{print $2}' | cu
 
 usage() {
   echo
-  echo "USAGE: ${0} install|remove"
+  echo "USAGE: ${0} install|remove|start|stop|restart"
+  echo
+  echo "      install    -Install and start Guacamole"
+  echo "      remove     -Stop and remove Guacamole"
+  echo "      start      -Start a stopped instance of Guacamole"
+  echo "      stop       -Stop a running instance of Guacamole"
+  echo "      restart    -Restart Guacamole"
   echo
 }
 
@@ -168,7 +177,8 @@ server {
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection \$http_connection;
   }
-} " > ${NGINX_CONFIG_FILE}
+}" > ${NGINX_CONFIG_FILE}
+
   else
     echo "Using existing NGINX config file."
     echo
@@ -183,8 +193,8 @@ create_required_folders_and_files() {
   echo "======================================================================"
   echo
 
-  echo "COMMAND: sudo mkdir -m 775 -p ${PODMAN_DIR}/guac/home/.guacamole"
-  sudo mkdir -m 775 -p ${PODMAN_DIR}/guac/home/.guacamole
+  echo "COMMAND: sudo mkdir -m 775 -p ${PODMAN_DIR}/guacamole/home/.guacamole"
+  sudo mkdir -m 775 -p ${PODMAN_DIR}/guacamole/home/.guacamole
   echo
 
   echo "COMMAND: sudo mkdir -m 775 -p ${PODMAN_DIR}/postgresql/{data,init}"
@@ -281,7 +291,35 @@ configure_for_podman() {
   echo "======================================================================"
   echo
 
+  # FIXME: -Add some inteligence to list just port numbers, 
+  #        -Autobuild GUACAMOLE_PROXY_EXPOSED_PORTS_STRING variable from the 
+  #         list of ports, 
+  #        -Determine the lowest port and if too low change the 
+  #         net.ipv4.ip_unprivileged_port_start value
+
+  export GUACAMOLE_PROXY_EXPOSED_PORTS_STRING="-p 443:443 -p 80:80 -p ${NGINX_TLS_PORT}:${NGINX_TLS_PORT}"
+  SYSCTL_IP_UNPRIVILEGED_PORT_START=80
+
+  echo "-Checking current net.ipv4.ip_unprivileged_port_start value ..."
+
+  if ! sysctl -a | grep -q "net.ipv4.ip_unprivileged_port_start = ${SYSCTL_IP_UNPRIVILEGED_PORT_START}"
+  then
+    echo "(not set as needed, setting ...)"
+    echo "COMMAND: sudo sysctl net.ipv4.ip_unprivileged_port_start=${SYSCTL_IP_UNPRIVILEGED_PORT_START}"
+    sudo sysctl net.ipv4.ip_unprivileged_port_start=${SYSCTL_IP_UNPRIVILEGED_PORT_START}
+
+    if ! grep "net.ipv4.ip_unprivileged_port_start=${SYSCTL_IP_UNPRIVILEGED_PORT_START}" /etc/sysctl.d/*
+    then
+      echo "(making change persistent ...)"
+      echo "COMMAND: sudo echo \"net.ipv4.ip_unprivileged_port_start=${SYSCTL_IP_UNPRIVILEGED_PORT_START}\" >> /etc/sysctl.d/80-gucamole_proxy.conf"
+      sudo echo "net.ipv4.ip_unprivileged_port_start=${SYSCTL_IP_UNPRIVILEGED_PORT_START}" >> /etc/sysctl.d/80-gucamole_proxy.conf
+    fi
+  else
+    echo "(set correctly, continuing ...)"
+  fi
+
   # Make sure subuids and subgids are setup
+  echo "-Setting subuids/subgids ..."
   echo "COMMAND: sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 ${USER}"
   sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 ${USER}
   echo
@@ -291,9 +329,13 @@ configure_for_podman() {
   podman system migrate
   echo
 
-  # Create the Guacamole Network
-  echo "COMMAND: podman network create guacamole"
-  podman network create guacamole
+  # Create the Guacamole Network(s)
+  echo "-Creating required podman network(s) ..."
+  for NETWORK in ${GUACAMOLE_NETWORK_LIST}
+  do
+    echo "COMMAND: podman network create ${NETWORK}"
+    podman network create ${NETWORK}
+  done
   echo
 }
 
@@ -611,7 +653,7 @@ start_containers() {
     -e GUACD_PORT_4822_TCP_ADDR=guacd \
     -e GUACD_PORT_4822_TCP_PORT=4822 \
     -e GUACD_HOSTNAME=guacd \
-    -v ${PODMAN_DIR}/guac/home:/etc/guacamole \
+    -v ${PODMAN_DIR}/guacamole/home:/etc/guacamole \
     --requires=guacd,postgresql \
     -p ${GUACAMOLE_PORT}:${GUACAMOLE_PORT} \
     --network=guacamole \
@@ -622,9 +664,10 @@ start_containers() {
   podman run -d --name guacamole_proxy \
     -v ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d:/etc/nginx/conf.d \
     --requires=guacamole \
-    -p ${NGINX_TLS_PORT}:${NGINX_TLS_PORT} \
+    ${GUACAMOLE_PROXY_EXPOSED_PORTS_STRING} \
     --network=guacamole \
     docker.io/nginx
+    #-p ${NGINX_TLS_PORT}:${NGINX_TLS_PORT} -p 443:443 -p 80:80 \
   echo
 }
 
@@ -738,7 +781,7 @@ remove_guacamole() {
   echo "######################################################################"
   echo
 
-  retrieve_config_files
+  #retrieve_config_files
 
   echo "========================================================================"
   echo "Stopping and removing Podman containers, networks, etc. ..."
@@ -777,6 +820,8 @@ remove_guacamole() {
   systemctl --user disable container-guacamole.service > /dev/null 2>&1
   echo
 
+  # FIXME: Does this need to be more specific about which user unit files are
+  #        removed so that other potential user unit files are preserved?
   echo "COMMAND: sudo rm -rf ~/.config/systemd/user"
   sudo rm -rf ~/.config/systemd/user
   echo
@@ -801,6 +846,47 @@ remove_guacamole() {
   echo
 }
 
+stop_guacamole() {
+  echo "========================================================================"
+  echo "Stopping Podman Containers and Networks..."
+  echo "========================================================================"
+  echo
+
+  for CONTAINER in ${GUACAMOLE_CONTAINER_LIST}
+  do
+    echo "COMMAND: podman container stop ${CONTAINER}"
+    podman container stop ${CONTAINER}
+  done
+    echo
+
+  for NETWORK in ${GUACAMOLE_NETWORK_LIST}
+  do
+    echo "COMMAND: podman network rm ${NETWORK}"
+    podman network rm ${NETWORK}
+  done
+  echo
+}
+
+start_guacamole() {
+  echo "========================================================================"
+  echo "Starting Podman Containers and Networks..."
+  echo "========================================================================"
+  echo
+
+  for NETWORK in ${GUACAMOLE_NETWORK_LIST}
+  do
+    echo "COMMAND: podman network create ${NETWORK}"
+    podman network create ${NETWORK}
+  done
+  echo
+
+  for CONTAINER in ${GUACAMOLE_CONTAINER_LIST}
+  do
+    echo "COMMAND: podman container start ${CONTAINER}"
+    podman container start ${CONTAINER}
+  done
+    echo
+}
 
 ##############################################################################
 # Main Code Body
@@ -812,6 +898,16 @@ case ${1} in
   ;;
   remove)
     remove_guacamole
+  ;;
+  stop)
+    stop_guacamole
+  ;;
+  start)
+    start_guacamole
+  ;;
+  restart)
+    stop_guacamole
+    start_guacamole
   ;;
   *)
     usage
