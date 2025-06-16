@@ -3,11 +3,17 @@ Scripts that automate the installation and configuration of Guacamole running in
 
 # USAGE
 
-The `guacamole-setup.sh` script accepts two arguments: **install** (to install and configure Guacamole on the host) and **remove** (to remove Guacamole from the host).
+The `guacamole-setup.sh` script accepts five arguments: **install** (to install and configure Guacamole on the host), **remove** (to remove Guacamole from the host), **start** (to start an already installed/configured but stopped Guacamole instance), **stop** (stop a running Guacamole instance) and **restart** (restart an already installed/configured Guacamole instance).
 
 ***Installation Example:*** `guacamole-setup.sh install`
 
 ***Removal Example:*** `guacamole-setup.sh remove`
+
+***start Example:*** `guacamole-setup.sh start`
+
+***stop Example:*** `guacamole-setup.sh stop`
+
+***restart Example:*** `guacamole-setup.sh restart`
 
 # Configuration Files
 
