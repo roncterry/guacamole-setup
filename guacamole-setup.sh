@@ -781,7 +781,7 @@ remove_guacamole() {
   echo "######################################################################"
   echo
 
-  #retrieve_config_files
+  retrieve_config_files
 
   echo "========================================================================"
   echo "Stopping and removing Podman containers, networks, etc. ..."
