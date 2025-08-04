@@ -632,7 +632,7 @@ start_containers() {
     -e POSTGRES_PASSWORD=${GUACDB_PASSWORD} \
     -e POSTGRES_DB=guacamole_db \
     --network=guacamole \
-    docker.io/library/postgres:16-alpine
+    docker.io/library/postgres:17.5-alpine
   echo
 
   echo "[guacd]"
@@ -648,11 +648,12 @@ start_containers() {
   podman run -d --name guacamole \
     -e POSTGRESQL_HOSTNAME=postgresql \
     -e POSTGRESQL_DATABASE=guacamole_db \
-    -e POSTGRESQL_USER=guacamole \
+    -e POSTGRESQL_USERNAME=guacamole \
     -e POSTGRESQL_PASSWORD=${GUACDB_PASSWORD} \
     -e GUACD_PORT_4822_TCP_ADDR=guacd \
     -e GUACD_PORT_4822_TCP_PORT=4822 \
     -e GUACD_HOSTNAME=guacd \
+    -e GUACD_PORT=4822 \
     -v ${PODMAN_DIR}/guacamole/home:/etc/guacamole \
     --requires=guacd,postgresql \
     -p ${GUACAMOLE_PORT}:${GUACAMOLE_PORT} \
