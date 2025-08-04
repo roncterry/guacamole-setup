@@ -3,7 +3,7 @@ Scripts that automate the installation and configuration of Guacamole running in
 
 # USAGE
 
-The `guacamole-setup.sh` script accepts five arguments: **install** (to install and configure Guacamole on the host), **remove** (to remove Guacamole from the host), **start** (to start an already installed/configured but stopped Guacamole instance), **stop** (stop a running Guacamole instance) and **restart** (restart an already installed/configured Guacamole instance).
+The `guacamole-setup.sh` script accepts five arguments: **install** (to install and configure Guacamole on the host), **remove** (to remove Guacamole from the host), **start** (to start an already installed/configured but stopped Guacamole instance), **stop** (stop a running Guacamole instance), **restart** (restart an already installed/configured Guacamole instance), **create_config_only** (only create the Podman container volumes and container configuration but do not install and start containers) and **rotate_cert** (rotate the reverse proxy certificate).
 
 ***Installation Example:*** `guacamole-setup.sh install`
 
@@ -15,6 +15,11 @@ The `guacamole-setup.sh` script accepts five arguments: **install** (to install 
 
 ***restart Example:*** `guacamole-setup.sh restart`
 
+***Config Only Example:*** `guacamole-setup.sh create_config_only`
+
+***Certificate rotation Example:*** `guacamole-setup.sh rotate_cert`
+
+
 # Configuration Files
 
 The `guacamole-setup.cfg` file in the main configuration file for `guacamole-setup.sh` script.
@@ -25,7 +30,17 @@ The `initdb_base.sql` file is the base SQL config file that will be used to init
 
 These three config files must be in the same directory as the `guacamole-setup.sh` script. If they are not, or their filenames do not match the ones specified at the top the of script, the script will attempt to download the default versions of the files from this Github repository.
 
-If you have an existing x.509 certificate and key that you want to use with the reverse proxy, place them in the same directory as the `guacamole-setup.sh` script and name them `server.crt` and `server.key`. If those files exist in that directory they will be used, if they do not exist then a self-signed certificate valid for 365 days will be generated when the `guacamole-setup.sh` script is run.
+## Reverse Proxy Certificate
+
+If you have an existing x.509 certificate and key that you want to use with the reverse proxy, place them in the same directory as the `guacamole-setup.sh` script and name them `server.crt` and `server.key`. If those files exist in that directory they will be used, if they do not exist then a self-signed certificate valid for 365 days will be generated when the `guacamole-setup.sh` script is run. 
+
+To rotate the certificate either: 
+
+  A) To regenerate a self-signed certificate - delete the `server.crt` and `server.key` files 
+
+  B) To use your own new certificate - replace the `server.cert` and `server.key` files with your new certificate and key 
+
+When the files have been delete or replaced, run `guacamole-setup.sh rotate_cert` to rotate the certificate and restart the reverse_proxy container.
 
 # Requirements
 
