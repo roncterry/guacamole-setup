@@ -25,6 +25,8 @@ The `initdb_base.sql` file is the base SQL config file that will be used to init
 
 These three config files must be in the same directory as the `guacamole-setup.sh` script. If they are not, or their filenames do not match the ones specified at the top the of script, the script will attempt to download the default versions of the files from this Github repository.
 
+If you have an existing x.509 certificate and key that you want to use with the reverse proxy, place them in the same directory as the `guacamole-setup.sh` script and name them `server.crt` and `server.key`. If those files exist in that directory they will be used, if they do not exist then a self-signed certificate valid for 365 days will be generated when the `guacamole-setup.sh` script is run.
+
 # Requirements
 
 ## Hostnames and IP addresses
