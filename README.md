@@ -26,7 +26,7 @@ The `guacamole-setup.cfg` file in the main configuration file for `guacamole-set
 
 The `users_connections.cfg` file contains a list of users, connections and user to connection mappings that is sourced into the main configuration file when the script is executed. If you have different lab/demo environments with different users and/or connections you can have a separate `users_connections.cfg` file for each environment.
 
-The `initdb_base.sql` file is the base SQL config file that will be used to initialize the PostgreSQL database when it is run the first time. That file will be copied into the persistent volume attached to the PostgreSQL container and then additional SQL code blocks will be appended to it based on the configurationint the other config files.
+The `initdb_base.sql` file is the base SQL config file that will be used to initialize the PostgreSQL database when it is run the first time. That file will be copied into the persistent volume attached to the PostgreSQL container and then additional SQL code blocks will be appended to it based on the configuration in the other config files.
 
 These three config files must be in the same directory as the `guacamole-setup.sh` script. If they are not, or their filenames do not match the ones specified at the top the of script, the script will attempt to download the default versions of the files from this Github repository.
 
