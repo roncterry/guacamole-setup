@@ -28,13 +28,15 @@ export IP=$(ip addr show ${EXTERNAL_NIC} | grep "inet\b" | awk '{print $2}' | cu
 
 usage() {
   echo
-  echo "USAGE: ${0} install|remove|start|stop|restart"
+  echo "USAGE: ${0} create_config_only|install|remove|start|stop|restart|rotate_certs"
   echo
-  echo "      install    -Install and start Guacamole"
-  echo "      remove     -Stop and remove Guacamole"
-  echo "      start      -Start a stopped instance of Guacamole"
-  echo "      stop       -Stop a running instance of Guacamole"
-  echo "      restart    -Restart Guacamole"
+  echo "      create_config_only  -Only create the Guacamole Configuration"
+  echo "      install             -Install and start Guacamole"
+  echo "      remove              -Stop and remove Guacamole"
+  echo "      start               -Start a stopped instance of Guacamole"
+  echo "      stop                -Stop a running instance of Guacamole"
+  echo "      restart             -Restart Guacamole"
+  echo "      rotate_certs        -Regenerate and rotate reverse proxy certificates"
   echo
 }
 
@@ -216,7 +218,14 @@ create_required_folders_and_files() {
   echo "COMMAND: sudo cp ${NGINX_CONFIG_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/default.conf"
   sudo cp ${NGINX_CONFIG_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/default.conf
   echo
+}
 
+copy_certificate_into_proxy_volume() {
+  echo "======================================================================"
+  echo "Copying certificates into Reverse Proxy ..."
+  echo "======================================================================"
+  echo
+  
   echo "COMMAND: sudo cp ${NGINX_TLS_CERT_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.crt"
   sudo cp ${NGINX_TLS_CERT_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.crt
   echo
@@ -224,7 +233,13 @@ create_required_folders_and_files() {
   echo "COMMAND: sudo cp ${NGINX_TLS_KEY_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.key"
   sudo cp ${NGINX_TLS_KEY_FILE} ${PODMAN_DIR}/guacamole_proxy/etc/nginx/conf.d/server.key
   echo
+}
 
+change_podman_dir_permissions_and_ownership() {
+  echo "======================================================================"
+  echo "Setting permissions and ownership on the Podman directory ..."
+  echo "======================================================================"
+  echo
   # Set the ownership on the folders
   echo "COMMAND: sudo chown ${UID}:users -R ${PODMAN_DIR}"
   sudo chown ${UID}:users -R ${PODMAN_DIR}
@@ -742,6 +757,53 @@ enabled_systemd_services() {
 
 ###############################################################################
 
+create_guacamole_config_only() {
+  echo "######################################################################"
+  echo "               Generating Guacamole Configuration"
+  echo "######################################################################"
+  echo
+
+  retrieve_config_files
+  retrieve_base_initdb_file
+  generate_tls_certificate
+  create_nginx_proxy_config
+  create_required_folders_and_files
+  copy_certificate_into_proxy_volume
+  change_podman_dir_permissions_and_ownership
+
+  echo
+  echo
+  echo "######################################################################"
+  echo "    Guacamole configuration has been generated under ${PODMAN_DIR}"
+  echo "      -Containers have not been downloaded or started"
+  echo "######################################################################"
+  echo
+}
+
+rotate_reverse_proxy_certificate() {
+  echo "######################################################################"
+  echo "           Rotating Guacamole Reverse Proxy Certificates"
+  echo "######################################################################"
+  echo
+
+  generate_tls_certificate
+  copy_certificate_into_proxy_volume
+  change_podman_dir_permissions_and_ownership
+
+  echo "COMMAND: podman container stop guacamole_proxy"
+  podman container stop guacamole_proxy
+  
+  echo "COMMAND: podman container start guacamole_proxy"
+  podman container start guacamole_proxy
+    
+  echo
+  echo
+  echo "######################################################################"
+  echo "           Reverse Proxy certificates have been rotated"
+  echo "######################################################################"
+  echo
+}
+  
 install_guacamole() {
   echo "######################################################################"
   echo "              Installing and Configuring Guacamole"
@@ -753,6 +815,8 @@ install_guacamole() {
   generate_tls_certificate
   create_nginx_proxy_config
   create_required_folders_and_files
+  copy_certificate_into_proxy_volume
+  change_podman_dir_permissions_and_ownership
 
   install_packages
   update_hosts_file
@@ -771,7 +835,7 @@ install_guacamole() {
   echo
   echo
   echo "######################################################################"
-  echo "             Guacamole has been successfully configured"
+  echo "     Guacamole is successfully configured, installed and running"
   echo "######################################################################"
   echo
 }
@@ -886,7 +950,7 @@ start_guacamole() {
     echo "COMMAND: podman container start ${CONTAINER}"
     podman container start ${CONTAINER}
   done
-    echo
+  echo
 }
 
 ##############################################################################
@@ -894,6 +958,9 @@ start_guacamole() {
 ##############################################################################
 
 case ${1} in
+  create_config_only)
+    create_guacamole_config_only
+  ;;
   install)
     install_guacamole
   ;;
@@ -909,6 +976,9 @@ case ${1} in
   restart)
     stop_guacamole
     start_guacamole
+  ;;
+  rotate_cert)
+    rotate_reverse_proxy_certificate
   ;;
   *)
     usage
