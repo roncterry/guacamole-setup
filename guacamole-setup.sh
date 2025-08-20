@@ -172,7 +172,7 @@ server {
   ssl_certificate /etc/nginx/conf.d/server.crt;
   ssl_certificate_key /etc/nginx/conf.d/server.key;
   location /guacamole/ {
-    proxy_pass http://$(hostname -f):${GUACAMOLE_PORT}/guacamole/;
+    proxy_pass http://$(hostname -f):${GUACAMOLE_EXTERNAL_PORT}/guacamole/;
     proxy_buffering off;
     proxy_http_version 1.1;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -671,7 +671,7 @@ start_containers() {
     -e GUACD_PORT=4822 \
     -v ${PODMAN_DIR}/guacamole/home:/etc/guacamole \
     --requires=guacd,postgresql \
-    -p ${GUACAMOLE_PORT}:${GUACAMOLE_PORT} \
+    -p ${GUACAMOLE_EXTERNAL_PORT}:${GUACAMOLE_INTERNAL_PORT} \
     --network=guacamole \
     docker.io/guacamole/guacamole
   echo
