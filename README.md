@@ -3,7 +3,17 @@ Scripts that automate the installation and configuration of Guacamole running in
 
 # USAGE
 
-The `guacamole-setup.sh` script accepts five arguments: **install** (to install and configure Guacamole on the host), **remove** (to remove Guacamole from the host), **start** (to start an already installed/configured but stopped Guacamole instance), **stop** (stop a running Guacamole instance), **restart** (restart an already installed/configured Guacamole instance), **create_config_only** (only create the Podman container volumes and container configuration but do not install and start containers) and **rotate_cert** (rotate the reverse proxy certificate).
+The `guacamole-setup.sh` script accepts five arguments: 
+
+* **install** (to install and configure Guacamole on the host), 
+* **remove** (to remove Guacamole from the host), 
+* **start** (to start an already installed/configured but stopped Guacamole instance), 
+* **stop** (stop a running Guacamole instance), 
+* **restart** (restart an already installed/configured Guacamole instance), 
+* **create_config_only** (only create the Podman container volumes and container configuration but do not install and start containers) and 
+* **rotate_cert** (rotate the reverse proxy certificate).
+
+### Examples:
 
 ***Installation Example:*** `guacamole-setup.sh install`
 
