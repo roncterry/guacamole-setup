@@ -977,7 +977,7 @@ case ${1} in
     stop_guacamole
     start_guacamole
   ;;
-  rotate_cert)
+  rotate_certs)
     rotate_reverse_proxy_certificate
   ;;
   *)
