@@ -149,8 +149,8 @@ generate_tls_certificate() {
   
   if ! [ -e ${NGINX_TLS_CERT_FILE} ]
   then
-    echo "COMMAND: openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days ${TLS_DAYS} -nodes -subj \"/C=${TLS_C}/ST=${TLS_ST}/L=${TLS_L}/O=${TLS_O}/OU=${TLS_OU}/CN=${HOSTNAME}\" -addext \"subjectAltName=DNS:$(hostname -f),DNS:*.$(hostname -d),IP:${IP}\""
-    openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days ${TLS_DAYS} -nodes -subj "/C=${TLS_C}/ST=${TLS_ST}/L=${TLS_L}/O=${TLS_O}/OU=${TLS_OU}/CN=${HOSTNAME}" -addext "subjectAltName=DNS:$(hostname -f),DNS:*.$(hostname -d),IP:${IP}"
+    echo "COMMAND: openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days ${TLS_DAYS} -nodes -subj \"/C=${TLS_C}/ST=${TLS_ST}/L=${TLS_L}/O=${TLS_O}/OU=${TLS_OU}/CN=${HOSTNAME}\" -addext \"subjectAltName=DNS:$(echo ${HOSTNAME}),DNS:*.$(echo ${HOSTNAME} | cut -d . -f 2,3,4,5,6),IP:${IP}\""
+    openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days ${TLS_DAYS} -nodes -subj "/C=${TLS_C}/ST=${TLS_ST}/L=${TLS_L}/O=${TLS_O}/OU=${TLS_OU}/CN=${HOSTNAME}" -addext "subjectAltName=DNS:$(echo ${HOSTNAME}),DNS:*.$(echo ${HOSTNAME} | cut -d . -f 2,3,4,5,6),IP:${IP}"
   else
     echo "Using existing certificate files."
   fi
