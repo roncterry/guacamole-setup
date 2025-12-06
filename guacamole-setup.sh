@@ -172,7 +172,7 @@ server {
   ssl_certificate /etc/nginx/conf.d/server.crt;
   ssl_certificate_key /etc/nginx/conf.d/server.key;
   location /guacamole/ {
-    proxy_pass http://$(hostname -f):${GUACAMOLE_EXTERNAL_PORT}/guacamole/;
+    proxy_pass http://host.containers.internal:${GUACAMOLE_EXTERNAL_PORT}/guacamole/;
     proxy_buffering off;
     proxy_http_version 1.1;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
