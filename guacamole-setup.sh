@@ -45,6 +45,7 @@ usage() {
   echo "      start               -Start a stopped instance of Guacamole"
   echo "      stop                -Stop a running instance of Guacamole"
   echo "      restart             -Restart Guacamole"
+  echo "      status              -Display the status of the Guacamole systemd services and containers"
   echo "      rotate_certs        -Regenerate and rotate reverse proxy certificates"
   echo
   echo "  If the configdir=<CONFIG_DIR> option is supplied, all config files will be"
@@ -1146,6 +1147,27 @@ enable_guacamole_systemd_services() {
   echo
 }
 
+show_status_of_containers() {
+  local PODMAN_SERVICE_LIST="container-guacdb.service container-guacd.service container-guacamole.service container-guacamole_proxy.service"
+
+  for PODMAN_SERVICE in ${PODMAN_SERVICE_LIST}
+  do
+    echo "====================================================================="
+    echo "Service: ${PODMAN_SERVICE}"
+    echo "====================================================================="
+    echo "COMMAND: systemctl --user status ${PODMAN_SERVICE}"
+    echo "---------------------------------------------------------------------"
+    systemctl --user status ${PODMAN_SERVICE}
+    echo
+  done
+  
+  echo "====================================================================="
+  echo "COMMAND: podman ps"
+  echo "---------------------------------------------------------------------"
+  podman ps
+  echo
+}
+
 ###############################################################################
 # Do It Functions
 ###############################################################################
@@ -1312,6 +1334,8 @@ install_guacamole() {
   #----  Systemd services  ----#
   enable_guacamole_systemd_services
 
+  show_status_of_containers
+
   echo
   echo
   echo "######################################################################"
@@ -1435,6 +1459,11 @@ start_guacamole() {
   done
   echo
 }
+  
+status_guacamole() {
+  echo
+  show_status_of_containers
+}
 
 ##############################################################################
 # Main Code Body
@@ -1460,6 +1489,9 @@ case ${1} in
   restart)
     stop_guacamole
     start_guacamole
+  ;;
+  status)
+    status_guacamole
   ;;
   rotate_certs|rotate_cert)
     rotate_reverse_proxy_certificate
