@@ -1345,6 +1345,8 @@ install_guacamole() {
 }
 
 remove_guacamole() {
+  local PODMAN_SERVICE_LIST="container-guacdb.service container-guacd.service container-guacamole.service container-guacamole_proxy.service"
+
   echo "######################################################################"
   echo "                        Removing Guacamole"
   echo "######################################################################"
@@ -1392,11 +1394,12 @@ remove_guacamole() {
   systemctl --user disable container-guacamole.service > /dev/null 2>&1
   echo
 
-  # FIXME: Does this need to be more specific about which user unit files are
-  #        removed so that other potential user unit files are preserved?
-  echo "COMMAND: sudo rm -rf ~/.config/systemd/user"
-  sudo rm -rf ~/.config/systemd/user
-  echo
+  for PODMAN_SERVICE in ${PODMAN_SERVICE_LIST}
+  do
+    echo "COMMAND: sudo rm -rf ~/.config/systemd/user/${PODMAN_SERVICE}"
+    sudo rm -rf ~/.config/systemd/user/${PODMAN_SERVICE}
+    echo
+  done
 
   echo "COMMAND: systemctl --user daemon-reload > /dev/null 2>&1"
   systemctl --user daemon-reload > /dev/null 2>&1
