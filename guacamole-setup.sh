@@ -1150,6 +1150,9 @@ enable_guacamole_systemd_services() {
 show_status_of_containers() {
   local PODMAN_SERVICE_LIST="container-guacdb.service container-guacd.service container-guacamole.service container-guacamole_proxy.service"
 
+  echo "Systemd Linger status for user $(whoami): "
+  loginctl show-user $(whoami) --property=Linger
+  echo
   
   for PODMAN_SERVICE in ${PODMAN_SERVICE_LIST}
   do
