@@ -1164,7 +1164,7 @@ show_status_of_containers() {
     echo "====================================================================="
     echo "Service: ${PODMAN_SERVICE}"
     echo "====================================================================="
-    echo "COMMAND: systemctl --user status ${PODMAN_SERVICE}i --no-pager"
+    echo "COMMAND: systemctl --user status ${PODMAN_SERVICE} --no-pager"
     echo "---------------------------------------------------------------------"
     systemctl --user status ${PODMAN_SERVICE} --no-pager
     echo
