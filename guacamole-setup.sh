@@ -1150,14 +1150,15 @@ enable_guacamole_systemd_services() {
 show_status_of_containers() {
   local PODMAN_SERVICE_LIST="container-guacdb.service container-guacd.service container-guacamole.service container-guacamole_proxy.service"
 
+  
   for PODMAN_SERVICE in ${PODMAN_SERVICE_LIST}
   do
     echo "====================================================================="
     echo "Service: ${PODMAN_SERVICE}"
     echo "====================================================================="
-    echo "COMMAND: systemctl --user status ${PODMAN_SERVICE}"
+    echo "COMMAND: systemctl --user status ${PODMAN_SERVICE}i --no-pager"
     echo "---------------------------------------------------------------------"
-    systemctl --user status ${PODMAN_SERVICE}
+    systemctl --user status ${PODMAN_SERVICE} --no-pager
     echo
   done
   
